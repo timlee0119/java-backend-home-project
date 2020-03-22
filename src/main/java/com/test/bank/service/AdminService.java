@@ -41,6 +41,9 @@ public class AdminService {
 
     public boolean authenticate(String token) {
         // TODO implement authenticate
+        if (DSL.using(jooqConfiguration).fetchExists(TOKEN, TOKEN.TOKEN_.eq(token))) {
+            return true;
+        }
         return false;
     }
 
