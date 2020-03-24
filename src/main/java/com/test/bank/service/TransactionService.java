@@ -1,5 +1,6 @@
 package com.test.bank.service;
 
+import com.test.bank.db.tables.records.UserRecord;
 import com.test.bank.initializer.DataSourceInitializer;
 import com.test.bank.model.User;
 import com.test.bank.model.TransferResponse;
@@ -25,13 +26,18 @@ public class TransactionService {
 
     public TransferResponse transfer(int fromUserId, int toUserId, int amount) {
         // TODO implement transfer
+        if (fromUserId == toUserId || amount <= 0) {
+            return null;
+        }
         UInteger fromUserId_ = UInteger.valueOf(fromUserId);
         UInteger toUserId_ = UInteger.valueOf(toUserId);
-
         TransferResponse transferResponse = null;
         DSLContext ctx = DSL.using(jooqConfiguration);
-        // do transfer only if both users exist
-        if (ctx.fetchExists(USER, USER.ID.eq(fromUserId_)) && ctx.fetchExists(USER, USER.ID.eq(toUserId_))) {
+
+        // do transfer only if both users exist and fromUser's wallet is enough
+        UserRecord fromUser = ctx.fetchOne(USER, USER.ID.eq(fromUserId_));
+        UserRecord toUser = ctx.fetchOne(USER, USER.ID.eq(toUserId_));
+        if (fromUser instanceof UserRecord && toUser instanceof UserRecord && fromUser.getWallet() >= amount) {
             ctx.update(USER)
                     .set(USER.WALLET, USER.WALLET.minus(amount))
                     .where(USER.ID.eq(fromUserId_))
