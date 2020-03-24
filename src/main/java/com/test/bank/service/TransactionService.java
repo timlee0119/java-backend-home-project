@@ -37,15 +37,19 @@ public class TransactionService {
         // do transfer only if both users exist and fromUser's wallet is enough
         UserRecord fromUser = ctx.fetchOne(USER, USER.ID.eq(fromUserId_));
         UserRecord toUser = ctx.fetchOne(USER, USER.ID.eq(toUserId_));
-        if (fromUser instanceof UserRecord && toUser instanceof UserRecord && fromUser.getWallet() >= amount) {
-            ctx.update(USER)
-                    .set(USER.WALLET, USER.WALLET.minus(amount))
-                    .where(USER.ID.eq(fromUserId_))
-                    .execute();
-            ctx.update(USER)
-                    .set(USER.WALLET, USER.WALLET.plus(amount))
-                    .where(USER.ID.eq(toUserId_))
-                    .execute();
+        if (fromUser != null && toUser != null && fromUser.getWallet() >= amount) {
+            ctx.transaction(ctx_ -> {
+                DSL.using(ctx_)
+                        .update(USER)
+                        .set(USER.WALLET, USER.WALLET.minus(amount))
+                        .where(USER.ID.eq(fromUserId_))
+                        .execute();
+                DSL.using(ctx_)
+                        .update(USER)
+                        .set(USER.WALLET, USER.WALLET.plus(amount))
+                        .where(USER.ID.eq(toUserId_))
+                        .execute();
+            });
 
             transferResponse = new TransferResponse();
             transferResponse.setFromUser(ctx.fetchOne(USER, USER.ID.eq(fromUserId_)).into(User.class));
